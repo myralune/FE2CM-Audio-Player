@@ -15,8 +15,7 @@
 
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      margin: 0;
-      padding: 0;
+      margin: 0; padding: 0;
       background: transparent;
       user-select: none;
       height: 100vh;
@@ -29,116 +28,85 @@
       height: 87.5%;
       border-radius: 10px;
       border: 1px solid #4a5568;
-      display: flex;
-      flex-direction: column;
+      display: flex; flex-direction: column;
       box-sizing: border-box;
     }
 
     /* TITLE BAR */
     #title-bar {
-      height: 32px;
-      background: #2d3748;
-      display: flex;
-      align-items: center;
-      padding: 0 10px;
+      height: 32px; background: #2d3748;
+      display: flex; align-items: center; padding: 0 10px;
       border-radius: 10px 10px 0 0;
       -webkit-app-region: drag;
     }
+    .title-text { font-size: 12px; color: var(--text-muted); flex-grow: 1; text-align: center; }
+    .window-controls { display: flex; gap: 8px; -webkit-app-region: no-drag; }
+    .control-btn { width: 12px; height: 12px; border-radius: 50%; cursor: pointer; }
+    .btn-close { background-color: #ff5f56; } .btn-close:hover { background-color: #bf403a; }
+    .btn-min { background-color: #ffbd2e; } .btn-min:hover { background-color: #c99624; }
 
-    .title-text {
-      font-size: 12px;
-      color: var(--text-muted);
-      flex-grow: 1;
-      text-align: center;
-      pointer-events: none;
-    }
+    /* CONTENT & ANIMATIONS */
+    #content { padding: 20px; flex-grow: 1; position: relative; }
 
-    .window-controls {
-      display: flex;
-      gap: 8px;
-      -webkit-app-region: no-drag;
-    }
-
-    .control-btn {
-      width: 12px;
-      height: 12px;
-      border-radius: 50%;
-      cursor: pointer;
-      border: none;
-    }
-
-    .btn-close { background-color: #ff5f56; }
-    .btn-close:hover { background-color: #bf403a; }
-    .btn-min { background-color: #ffbd2e; }
-    .btn-min:hover { background-color: #c99624; }
-
-    /* CONTENT */
-    #content { padding: 20px; flex-grow: 1; }
-
-    /* LOGIN SCREEN */
-    #login-screen {
-      display: flex;
-      flex-direction: column;
-      gap: 15px;
-      margin-top: 50px;
-      text-align: center;
-    }
-
-    input[type="text"] {
-      background: var(--card-bg);
-      border: 1px solid #4a5568;
-      color: white;
-      padding: 12px;
-      border-radius: 6px;
-      font-size: 16px;
-      outline: none;
-      text-align: center;
-    }
-    input[type="text"]:focus { border-color: var(--accent); }
-
+    /* Button Hover Effects */
     button {
-      border: none;
-      padding: 12px;
-      border-radius: 6px;
-      font-size: 16px;
-      font-weight: bold;
-      cursor: pointer;
-      transition: background 0.2s;
+      border: none; padding: 12px; border-radius: 6px;
+      font-size: 16px; font-weight: bold; cursor: pointer;
       width: 100%;
+      transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1); /* Smooth pop */
     }
+    button:hover { transform: translateY(-2px); box-shadow: 0 4px 6px rgba(0,0,0,0.2); }
+    button:active { transform: translateY(0); }
 
     .connect-btn { background: var(--accent); color: white; }
-    .connect-btn:hover { background: #2b6cb0; }
+    .connect-btn:hover { background: #4299e1; }
     .disconnect-btn { background: var(--danger); color: white; margin-top: 20px; }
-    .disconnect-btn:hover { background: #c53030; }
+    .disconnect-btn:hover { background: #f56565; }
 
-    /* DASHBOARD */
-    #dashboard {
-      display: none;
-      background: var(--card-bg);
-      padding: 20px;
-      border-radius: 8px;
+    /* Inputs */
+    input[type="text"] {
+      background: var(--card-bg); border: 1px solid #4a5568; color: white;
+      padding: 12px; border-radius: 6px; font-size: 16px; outline: none; text-align: center;
+      width: 100%; box-sizing: border-box; margin-bottom: 15px;
     }
+    input[type="text"]:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(66, 153, 225, 0.5); }
 
+    /* LOADING SPINNER */
+    #loading-screen {
+      display: none; /* Hidden by default */
+      flex-direction: column; align-items: center; justify-content: center;
+      height: 100%; text-align: center;
+    }
+    .spinner {
+      border: 4px solid rgba(255,255,255,0.1);
+      border-left-color: var(--accent);
+      border-radius: 50%; width: 40px; height: 40px;
+      animation: spin 1s linear infinite;
+      margin-bottom: 20px;
+    }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+    /* Login & Dashboard */
+    #login-screen { display: flex; flex-direction: column; gap: 15px; margin-top: 50px; text-align: center; }
+    #dashboard { display: none; background: var(--card-bg); padding: 20px; border-radius: 8px; }
+
+    /* Controls Styling */
     .status-bar { margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid #4a5568; text-align: center; }
     .status-user { color: var(--accent); font-weight: bold; }
-
-    /* CONTROLS */
     .control-group { margin-bottom: 20px; }
     .label-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-weight: 600; font-size: 14px;}
     
     input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; background: transparent; }
-    input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 16px; width: 16px; border-radius: 50%; background: var(--accent); cursor: pointer; margin-top: -6px; }
+    input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 16px; width: 16px; border-radius: 50%; background: var(--accent); cursor: pointer; margin-top: -6px; transition: transform 0.1s; }
+    input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
     input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; background: #4a5568; border-radius: 2px; }
 
     .radio-group { display: flex; flex-direction: column; gap: 8px; font-size: 14px; }
     .radio-option { display: flex; align-items: center; cursor: pointer; }
     .radio-option input { margin-right: 10px; accent-color: var(--accent); }
-
   </style>
 </head>
 <body>
-
   <div id="app-container">
     <div id="title-bar">
       <div class="window-controls">
@@ -149,6 +117,11 @@
     </div>
 
     <div id="content">
+      <div id="loading-screen">
+        <div class="spinner"></div>
+        <div style="color: var(--text-muted);">Auto-connecting...</div>
+      </div>
+
       <div id="login-screen">
         <h2>Welcome</h2>
         <input type="text" id="username" placeholder="Roblox Username">
@@ -159,7 +132,7 @@
         <div class="status-bar">
           Connected as <span id="displayUser" class="status-user">Guest</span>
         </div>
-
+        
         <div class="control-group">
           <div class="label-row"><span>Volume</span><span id="volDisplay">70%</span></div>
           <input type="range" id="volume" min="0" max="100" value="70">
@@ -190,32 +163,37 @@
   <script>
     const { ipcRenderer } = require('electron');
 
-    // --- WINDOW CONTROLS ---
+    // -- Navigation Helper --
+    function showScreen(screenId) {
+        ['loading-screen', 'login-screen', 'dashboard'].forEach(id => {
+            document.getElementById(id).style.display = (id === screenId) ? (id === 'loading-screen' ? 'flex' : 'block') : 'none';
+        });
+    }
+
+    // -- Handlers --
     document.getElementById('winClose').onclick = () => ipcRenderer.send('app-close');
     document.getElementById('winMin').onclick = () => ipcRenderer.send('app-minimize');
 
-    // --- CONNECT ---
     document.getElementById('connectBtn').onclick = () => {
       const user = document.getElementById('username').value;
       if(!user) return;
-      ipcRenderer.send('connect-user', user);
-      switchToDashboard(user);
+      
+      // Show loading while we process
+      showScreen('loading-screen');
+      
+      // Simulate small delay so they see the cool animation
+      setTimeout(() => {
+          ipcRenderer.send('connect-user', user);
+          showScreen('dashboard');
+          document.getElementById('displayUser').innerText = user;
+      }, 500); 
     };
 
-    function switchToDashboard(user) {
-      document.getElementById('login-screen').style.display = 'none';
-      document.getElementById('dashboard').style.display = 'block';
-      document.getElementById('displayUser').innerText = user;
-    }
-
-    // --- DISCONNECT ---
     document.getElementById('disconnectBtn').onclick = () => {
       ipcRenderer.send('disconnect-game');
-      document.getElementById('dashboard').style.display = 'none';
-      document.getElementById('login-screen').style.display = 'flex';
+      showScreen('login-screen');
     };
 
-    // --- CONTROLS ---
     const volSlider = document.getElementById('volume');
     volSlider.oninput = () => {
       document.getElementById('volDisplay').innerText = volSlider.value + '%';
@@ -223,18 +201,21 @@
     };
 
     document.querySelectorAll('input[type="radio"]').forEach(radio => {
-      radio.onchange = (e) => {
-        ipcRenderer.send('click-option', e.target.name, e.target.value); 
-      };
+      radio.onchange = (e) => ipcRenderer.send('click-option', e.target.name, e.target.value); 
     });
 
-    // --- LISTENERS (For Auto-Load & Tray Changes) ---
-    
-    // Called when the app starts with saved data
+    // -- Listeners --
+    ipcRenderer.on('start-loading', () => showScreen('loading-screen'));
+
     ipcRenderer.on('restore-state', (event, data) => {
         if(data.username) {
             document.getElementById('username').value = data.username;
-            switchToDashboard(data.username);
+            document.getElementById('displayUser').innerText = data.username;
+            
+            // Wait a moment on the loading screen before showing dashboard
+            setTimeout(() => {
+                showScreen('dashboard');
+            }, 1500);
         }
         if(data.volume) {
             volSlider.value = data.volume;
@@ -250,12 +231,10 @@
         }
     });
 
-    // Called when user changes Volume via Tray
     ipcRenderer.on('update-volume', (event, val) => {
         volSlider.value = val;
         document.getElementById('volDisplay').innerText = val + '%';
     });
-
   </script>
 </body>
 </html>
