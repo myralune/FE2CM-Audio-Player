@@ -32,6 +32,7 @@ const configPath = path.join(app.getPath('userData'), 'fe2-config.json');
 let appState = {
     username: '',
     volume: 70,
+    previousVolume: 70,
     onDeath: 'Quieten BGM',
     onLeave: 'Stop BGM',
     settings: {
@@ -48,6 +49,8 @@ function loadSettings() {
             const saved = JSON.parse(fs.readFileSync(configPath));
             appState = { ...appState, ...saved };
             appState.settings = { ...appState.settings, ...(saved.settings || {}) };
+
+            if (!appState.previousVolume) appState.previousVolume = 70;
         }
     } catch (e) { console.error(e); }
 }
@@ -70,8 +73,17 @@ function registerShortcuts() {
         }
     };
 
+    let previousVolume = appState.volume;
+
     reg(k.mute, () => {
-        const newVol = appState.volume > 0 ? 0 : 70;
+        let newVol;
+        if (appState.volume > 0) {
+            appState.previousVolume = appState.volume;
+            newVol = 0;
+        } else {
+            newVol = appState.previousVolume || 70;
+        }
+
         applyVolumeLogic(newVol);
         if (uiWindow) uiWindow.webContents.send('update-volume', newVol);
     });
@@ -281,7 +293,13 @@ function connectUserLogic(username) {
 }
 
 function applyVolumeLogic(val) {
-    appState.volume = val; saveSettings();
+    appState.volume = val;
+
+    if (val > 0) {
+        appState.previousVolume = val;
+    }
+
+    saveSettings();
     runSafe('Volume', `
         const s = document.getElementById('volumeRange');
         if(s) { s.value = ${val}; s.dispatchEvent(new Event('input', { bubbles: true })); s.dispatchEvent(new Event('change', { bubbles: true })); }

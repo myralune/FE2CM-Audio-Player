@@ -788,7 +788,7 @@
         document.getElementById('username').value = data.username;
         document.getElementById('displayUser').innerText = data.username;
       }
-      if (data.volume) {
+      if (data.volume !== undefined && data.volume !== null) {
         volSlider.value = data.volume;
         document.getElementById('volDisplay').innerText = data.volume + '%';
         customAudioPlayer.volume = data.volume / 100;
