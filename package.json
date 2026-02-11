@@ -1,0 +1,26 @@
+{
+  "name": "fe2cm-audio-player",
+  "productName": "FE2CM Audio Player",
+  "version": "1.1.0",
+  "description": "FE2CM Audio Player",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder" 
+  },
+  "author": "myralune",
+  "license": "ISC",
+  "devDependencies": {
+    "electron": "^33.0.0", 
+    "electron-builder": "^24.9.1"
+  },
+  "build": {
+    "appId": "com.fe2cm.audioplayer",
+    "productName": "FE2CM Audio Player",
+    "win": {
+      "target": "nsis",
+      "icon": "icon.ico",
+      "artifactName": "${productName} Setup ${version}.exe"
+    }
+  }
+}
