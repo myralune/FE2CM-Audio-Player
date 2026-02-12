@@ -5,6 +5,7 @@ const { appState, loadSettings, saveSettings } = require('./config');
 const gameLogic = require('./game-logic');
 const shortcuts = require('./shortcuts');
 const tray = require('./tray');
+const updater = require('./updater');
 
 app.setAppUserModelId("com.fe2cm.audioplayer");
 
@@ -63,7 +64,9 @@ function createWindows() {
         if (!baseContentSize) return;
         const [currentWidth] = uiWindow.getContentSize();
         const zoomFactor = currentWidth / baseContentSize.width;
-        uiWindow.webContents.setZoomFactor(zoomFactor);
+        if (zoomFactor > 0) {
+            uiWindow.webContents.setZoomFactor(zoomFactor);
+        }
     });
 
     backgroundWindow = new BrowserWindow({
@@ -144,6 +147,10 @@ function createWindows() {
     });
 
     tray.createTray(isQuittingRef, () => { isQuitting = true; app.quit(); });
+
+    // Auto-update check
+    updater.init(uiWindow);
+    updater.checkForUpdates();
 }
 
 // --- IPC HANDLERS ---

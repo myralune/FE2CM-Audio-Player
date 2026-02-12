@@ -81,6 +81,12 @@ document.getElementById('set-customAudioEnabled').onchange = (e) => {
 };
 
 api.onGameAudioState((state) => {
+  // If manually muted, keep site muted and don't play custom audio
+  if (isMuted) {
+    api.setSiteMute(true);
+    return;
+  }
+
   if (!isCustomAudioEnabled || !customAudioPlayer.src) {
     api.setSiteMute(false);
     return;
@@ -238,6 +244,7 @@ function toggleMute() {
     muteBtn.innerHTML = '&#128266;';
     volGroup.classList.remove('volume-muted');
     api.setVolume(volumeBeforeMute);
+    api.setSiteMute(false);
     customAudioPlayer.volume = volumeBeforeMute / 100;
   } else {
     // Mute
@@ -246,6 +253,7 @@ function toggleMute() {
     muteBtn.innerHTML = '&#128263;';
     volGroup.classList.add('volume-muted');
     api.setVolume(0);
+    api.setSiteMute(true);
     customAudioPlayer.volume = 0;
   }
 }
