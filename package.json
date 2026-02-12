@@ -1,7 +1,7 @@
 {
   "name": "fe2cm-audio-player",
   "productName": "FE2CM Audio Player",
-  "version": "1.1.2",
+  "version": "1.2.0",
   "description": "FE2CM Audio Player",
   "main": "main.js",
   "scripts": {
