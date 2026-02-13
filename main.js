@@ -148,6 +148,10 @@ function createWindows() {
 
     tray.createTray(isQuittingRef, () => { isQuitting = true; app.quit(); });
 
+    app.on('will-quit', () => {
+        shortcuts.stop();
+    });
+
     // Auto-update check
     updater.init(uiWindow);
     updater.checkForUpdates();
@@ -156,6 +160,9 @@ function createWindows() {
 // --- IPC HANDLERS ---
 ipcMain.on('app-close', () => uiWindow.close());
 ipcMain.on('app-minimize', () => uiWindow.minimize());
+
+ipcMain.on('start-hotkey-capture', () => shortcuts.startCapture());
+ipcMain.on('stop-hotkey-capture', () => shortcuts.stopCapture());
 
 ipcMain.on('save-advanced-settings', (event, newSettings) => {
     appState.settings = { ...appState.settings, ...newSettings };

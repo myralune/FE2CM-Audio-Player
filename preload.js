@@ -24,6 +24,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // Window sizing
     fitWindow: (width, height) => ipcRenderer.send('fit-window', width, height),
 
+    // Hotkey capture
+    startHotkeyCapture: () => ipcRenderer.send('start-hotkey-capture'),
+    stopHotkeyCapture: () => ipcRenderer.send('stop-hotkey-capture'),
+    onHotkeyCaptured: (callback) => ipcRenderer.on('hotkey-captured', (_event, accel) => callback(accel)),
+
     // Listeners
     onStartLoading: (callback) => ipcRenderer.on('start-loading', (_event) => callback()),
     onRestoreState: (callback) => ipcRenderer.on('restore-state', (_event, data) => callback(data)),

@@ -1,7 +1,7 @@
 {
   "name": "fe2cm-audio-player",
   "productName": "FE2CM Audio Player",
-  "version": "1.2.11",
+  "version": "1.2.2",
   "description": "FE2CM Audio Player",
   "main": "main.js",
   "scripts": {
@@ -24,6 +24,9 @@
         "repo": "FE2CM-Audio-Player"
       }
     ],
+    "asarUnpack": [
+      "node_modules/uiohook-napi/**"
+    ],
     "win": {
       "target": "nsis",
       "icon": "icon.ico",
@@ -31,6 +34,7 @@
     }
   },
   "dependencies": {
-    "electron-updater": "^6.7.3"
+    "electron-updater": "^6.7.3",
+    "uiohook-napi": "^1.5.4"
   }
 }

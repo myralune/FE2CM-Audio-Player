@@ -118,54 +118,41 @@ api.onStartLoading(() => {
   showScreen('loading-screen');
 });
 
+// Active hotkey input element (only one can capture at a time)
+let activeHotkeyInput = null;
+
+// Listen for key combos captured by uiohook in the main process
+api.onHotkeyCaptured((accel) => {
+  if (!activeHotkeyInput) return;
+
+  // Clear keybind on bare Backspace/Delete/Escape
+  if (accel === 'Backspace' || accel === 'Delete' || accel === 'Esc') {
+    activeHotkeyInput.value = '';
+  } else {
+    activeHotkeyInput.value = accel;
+  }
+  triggerSave();
+});
+
 function setupHotkeyInput(id) {
   const input = document.getElementById(id);
 
   input.onkeydown = (e) => {
     e.preventDefault();
-
-    if (['Control', 'Alt', 'Shift', 'Meta'].includes(e.key)) return;
-
-    const keys = [];
-    if (e.ctrlKey) keys.push('Ctrl');
-    if (e.altKey) keys.push('Alt');
-    if (e.shiftKey) keys.push('Shift');
-    if (e.metaKey) keys.push('Win');
-
-    let char = '';
-    const code = e.code;
-
-    if (code.startsWith('Key')) {
-      char = code.slice(3);
-    }
-    else if (code.startsWith('Digit')) {
-      char = code.slice(5);
-    }
-    else {
-      const map = {
-        'ArrowUp': 'Up', 'ArrowDown': 'Down', 'ArrowLeft': 'Left', 'ArrowRight': 'Right',
-        'Enter': 'Return', 'Escape': 'Esc', 'Backspace': 'Backspace', 'Delete': 'Delete',
-        'Tab': 'Tab', 'Space': 'Space',
-        'Minus': '-', 'Equal': '=', 'BracketLeft': '[', 'BracketRight': ']',
-        'Backslash': '\\', 'Semicolon': ';', 'Quote': '\'', 'Comma': ',', 'Period': '.', 'Slash': '/'
-      };
-
-      char = map[code] || e.key.toUpperCase();
-
-      if (/^F\d+$/.test(e.key.toUpperCase())) char = e.key.toUpperCase();
-    }
-
-    keys.push(char);
-    input.value = keys.join('+');
-    triggerSave();
+    e.stopPropagation();
   };
 
-  input.onkeyup = (e) => {
-    if ((e.key === 'Backspace' || e.key === 'Delete' || e.key === 'Escape') && !e.ctrlKey && !e.altKey && !e.shiftKey) {
-      input.value = '';
-      triggerSave();
+  input.onfocus = () => {
+    activeHotkeyInput = input;
+    api.startHotkeyCapture();
+  };
+
+  input.onblur = () => {
+    if (activeHotkeyInput === input) {
+      activeHotkeyInput = null;
+      api.stopHotkeyCapture();
     }
-  }
+  };
 }
 
 setupHotkeyInput('key-mute');
