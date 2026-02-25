@@ -16,6 +16,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     
     // Custom Audio Helpers
     setSiteMute: (shouldMute) => ipcRenderer.send('set-site-mute', shouldMute),
+    setSiteVolume: (vol) => ipcRenderer.send('set-site-volume', vol),
+    setCustomAudioActive: (active) => ipcRenderer.send('set-custom-audio-active', active),
     onGameAudioState: (callback) => ipcRenderer.on('game-audio-state', (_event, state) => callback(state)),
 
     // Settings

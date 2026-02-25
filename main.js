@@ -84,20 +84,19 @@ function createWindows() {
     backgroundWindow.webContents.on('did-finish-load', () => {
         uiWindow.webContents.send('restore-state', appState);
 
-        // Audio Polling
+        // Audio Polling — reads the #bgmInfo label on FE2.io for reliable state detection.
         setInterval(() => {
             if (!backgroundWindow || backgroundWindow.isDestroyed()) return;
             backgroundWindow.webContents.executeJavaScript(`
               (function(){
-                  const a = document.querySelector('audio');
-                  return a ? !a.paused : false;
+                  const label = document.getElementById('bgmInfo');
+                  return label ? label.textContent : '';
               })()
-          `).then(isPlaying => {
-                if (uiWindow && !uiWindow.isDestroyed()) {
-                    uiWindow.webContents.send('game-audio-state', isPlaying ? 'playing' : 'paused');
-                }
+          `).then(bgmInfo => {
+                if (!uiWindow || uiWindow.isDestroyed()) return;
+                uiWindow.webContents.send('game-audio-state', bgmInfo);
             }).catch(() => { });
-        }, 1000);
+        }, 500);
 
         // Auto-Connect Check
         const shouldConnect = (appState.username && appState.username !== '') &&
@@ -201,11 +200,20 @@ ipcMain.on('fit-window', (e, width, height) => {
     }
 });
 
+ipcMain.on('set-custom-audio-active', (event, active) => {
+    gameLogic.setCustomAudioActive(active);
+});
+
 ipcMain.on('set-site-mute', (event, shouldMute) => {
     if (backgroundWindow && !backgroundWindow.isDestroyed()) {
-        backgroundWindow.webContents.executeJavaScript(`
-            const a = document.querySelector('audio');
-            if(a) a.muted = ${shouldMute};
-        `).catch(() => { });
+        backgroundWindow.webContents.setAudioMuted(shouldMute);
     }
+});
+
+ipcMain.on('set-site-volume', (event, vol) => {
+    if (!backgroundWindow || backgroundWindow.isDestroyed()) return;
+    backgroundWindow.webContents.executeJavaScript(`
+        const s = document.getElementById('volumeRange');
+        if(s) { s.value = ${vol}; s.dispatchEvent(new Event('input', { bubbles: true })); s.dispatchEvent(new Event('change', { bubbles: true })); }
+    `).catch(() => { });
 });

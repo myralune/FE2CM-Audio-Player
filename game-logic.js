@@ -2,10 +2,15 @@ const { appState, saveSettings } = require('./config');
 
 let backgroundWindow = null;
 let updateTrayMenu = null;
+let customAudioActive = false;
 
 function init(bgWindow, trayMenuUpdater) {
     backgroundWindow = bgWindow;
     updateTrayMenu = trayMenuUpdater;
+}
+
+function setCustomAudioActive(active) {
+    customAudioActive = active;
 }
 
 function runSafe(desc, jsCode) {
@@ -35,10 +40,13 @@ function applyVolumeLogic(val) {
         appState.previousVolume = val;
     }
     saveSettings();
-    runSafe('Volume', `
-        const s = document.getElementById('volumeRange');
-        if(s) { s.value = ${val}; s.dispatchEvent(new Event('input', { bubbles: true })); s.dispatchEvent(new Event('change', { bubbles: true })); }
-    `);
+    // Don't touch FE2's volume when custom audio is active — it's held at 0
+    if (!customAudioActive) {
+        runSafe('Volume', `
+            const s = document.getElementById('volumeRange');
+            if(s) { s.value = ${val}; s.dispatchEvent(new Event('input', { bubbles: true })); s.dispatchEvent(new Event('change', { bubbles: true })); }
+        `);
+    }
 }
 
 function clickOptionLogic(group, val) {
@@ -56,4 +64,4 @@ function clickOptionLogic(group, val) {
     }
 }
 
-module.exports = { init, connectUserLogic, applyVolumeLogic, clickOptionLogic };
+module.exports = { init, connectUserLogic, applyVolumeLogic, clickOptionLogic, setCustomAudioActive };

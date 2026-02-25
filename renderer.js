@@ -68,36 +68,62 @@ document.getElementById('customAudioFile').onchange = (e) => {
   }
 };
 
+// When custom audio is enabled, we set FE2's volume to 0 and play our own audio.
+// We restore FE2's volume when custom audio is disabled.
+let siteVolumeBeforeCustom = -1;
+
 document.getElementById('set-customAudioEnabled').onchange = (e) => {
   isCustomAudioEnabled = e.target.checked;
+  
   if (!isCustomAudioEnabled) {
     customAudioPlayer.pause();
+    customAudioPlayer.currentTime = 0;
+    lastBgmState = '';
+    
+    api.setCustomAudioActive(false);
     api.setSiteMute(false);
+    api.setVolume(parseInt(volSlider.value));
   } else {
-    if (customAudioPlayer.src && !customAudioPlayer.paused) {
-      api.setSiteMute(true);
-    }
+    api.setCustomAudioActive(true);
+    api.setSiteMute(true);
   }
 };
 
-api.onGameAudioState((state) => {
-  // If manually muted, keep site muted and don't play custom audio
-  if (isMuted) {
-    api.setSiteMute(true);
-    return;
-  }
+const QUIETEN_SCALE = 0.5;
+let lastBgmState = '';
 
-  if (!isCustomAudioEnabled || !customAudioPlayer.src) {
-    api.setSiteMute(false);
-    return;
-  }
+api.onGameAudioState((bgmInfo) => {
+  // If manually muted, don't play custom audio
+  if (isMuted) return;
 
-  if (state === 'playing') {
-    api.setSiteMute(true);
-    if (customAudioPlayer.paused) {
-      customAudioPlayer.play().catch(e => console.log("Play error", e));
+  if (!isCustomAudioEnabled || !customAudioPlayer.src) return;
+
+  // Keep FE2 site volume at 0 while custom audio is active
+  api.setSiteVolume(0);
+
+  const userVolume = parseInt(volSlider.value) / 100;
+  const prevState = lastBgmState;
+  lastBgmState = bgmInfo;
+
+  if (bgmInfo.startsWith('Playing BGM')) {
+    if (bgmInfo.includes('Quietened')) {
+      // "Playing BGM; Quietened" — lower custom audio volume
+      if (customAudioPlayer.paused) {
+        customAudioPlayer.play().catch(e => console.log("Play error", e));
+      }
+      customAudioPlayer.volume = userVolume * QUIETEN_SCALE;
+    } else {
+      // "Playing BGM" — full volume; restart from beginning if state changed
+      if (prevState !== bgmInfo) {
+        customAudioPlayer.currentTime = 0;
+        customAudioPlayer.play().catch(e => console.log("Play error", e));
+      } else if (customAudioPlayer.paused) {
+        customAudioPlayer.play().catch(e => console.log("Play error", e));
+      }
+      customAudioPlayer.volume = userVolume;
     }
-  } else {
+  } else if (bgmInfo.startsWith('Stopped BGM') || bgmInfo === 'Waiting for BGM') {
+    // Audio stopped or not started — stop custom audio
     if (!customAudioPlayer.paused) {
       customAudioPlayer.pause();
       customAudioPlayer.currentTime = 0;
@@ -231,8 +257,12 @@ function toggleMute() {
     muteBtn.innerHTML = '&#128266;';
     volGroup.classList.remove('volume-muted');
     api.setVolume(volumeBeforeMute);
-    api.setSiteMute(false);
     customAudioPlayer.volume = volumeBeforeMute / 100;
+    // If custom audio is enabled, keep FE2 silent; otherwise unmute it
+    if (isCustomAudioEnabled) {
+      api.setSiteVolume(0);
+    }
+    api.setSiteMute(false);
   } else {
     // Mute
     volumeBeforeMute = parseInt(volSlider.value) || 70;
@@ -253,11 +283,16 @@ volSlider.oninput = () => {
     isMuted = false;
     muteBtn.innerHTML = '&#128266;';
     volGroup.classList.remove('volume-muted');
+    api.setSiteMute(false);
   }
   const val = volSlider.value;
   volDisplay.innerText = val + '%';
   api.setVolume(val);
   customAudioPlayer.volume = val / 100;
+  // Keep FE2 silent when custom audio is active
+  if (isCustomAudioEnabled) {
+    api.setSiteVolume(0);
+  }
   updateVolumeFill();
 };
 
@@ -308,6 +343,10 @@ api.onUpdateVolume((val) => {
   volSlider.value = val;
   volDisplay.innerText = val + '%';
   customAudioPlayer.volume = val / 100;
+  // Keep FE2 silent when custom audio is active
+  if (isCustomAudioEnabled) {
+    api.setSiteVolume(0);
+  }
   updateVolumeFill();
 });
 
