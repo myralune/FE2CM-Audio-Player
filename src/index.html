@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html data-theme="fe2">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FE2CM Audio Player</title>
+  <style>.theme-switching * { transition: none !important; }</style>
+  <link rel="stylesheet" href="styles.css" id="css-legacy">
+  <link rel="stylesheet" href="theme-fe2.css" id="css-fe2">
+  <style id="css-custom"></style>
+  <script>
+    // Applied before first paint to avoid flashing the wrong theme until the config loads.
+    (function () {
+      var id = 'fe2', base = 'fe2', css = '';
+      try {
+        id = localStorage.getItem('fe2cm-theme') || 'fe2';
+        base = localStorage.getItem('fe2cm-theme-base') || id;
+        css = localStorage.getItem('fe2cm-theme-css') || '';
+      } catch (e) { }
+      if (base !== 'fe2' && base !== 'legacy') base = 'fe2';
+      if (id.indexOf('custom:') !== 0) { id = base; css = ''; }
+      document.documentElement.dataset.theme = base;
+      document.documentElement.dataset.themeId = id;
+      // link.disabled is unreliable in WebView2 when toggled repeatedly.
+      document.getElementById('css-legacy').media = (base === 'legacy') ? 'all' : 'not all';
+      document.getElementById('css-fe2').media = (base === 'fe2') ? 'all' : 'not all';
+      document.getElementById('css-custom').textContent = css;
+    })();
+  </script>
+</head>
+
+<body>
+  <div id="app-container">
+    <div id="title-bar" data-tauri-drag-region>
+      <div class="window-controls">
+        <div class="control-btn btn-close" id="winClose" title="Close"></div>
+        <div class="control-btn btn-min" id="winMin" title="Minimize"></div>
+      </div>
+      <div class="title-text" data-tauri-drag-region>FE2CM Audio Player</div>
+      <div class="settings-btn" id="openSettings" title="Settings">&#9881;&#65039;</div>
+    </div>
+
+    <div id="content">
+
+      <div id="settings-modal">
+        <div class="settings-header" data-tauri-drag-region>
+          <h3>Settings</h3>
+          <div class="close-settings-btn only-legacy" id="closeSettings">&times;</div>
+        </div>
+
+        <div class="settings-frame">
+          <nav class="settings-tabs">
+            <button class="tab-btn only-legacy" data-tab="settings" data-show="behavior audio hotkeys">Settings</button>
+            <button class="tab-btn only-fe2" data-tab="behavior" data-show="behavior">App</button>
+            <button class="tab-btn only-fe2" data-tab="audio" data-show="audio">Audio</button>
+            <button class="tab-btn only-fe2" data-tab="hotkeys" data-show="hotkeys">Hotkeys</button>
+            <button class="tab-btn" data-tab="themes" data-show="themes">Themes</button>
+          </nav>
+
+          <div class="settings-body" id="settingsBody">
+            <div class="settings-section" data-section="behavior">
+              <div class="settings-label">App Behavior</div>
+              <label class="setting-row setting-toggle">
+                <span>Connect on Launch</span>
+                <div class="switch"><input type="checkbox" id="set-autoConnect"><span class="slider"></span></div>
+              </label>
+              <label class="setting-row setting-toggle">
+                <span>Always on Top</span>
+                <div class="switch"><input type="checkbox" id="set-alwaysOnTop"><span class="slider"></span></div>
+              </label>
+              <label class="setting-row setting-toggle">
+                <span>Start Minimized</span>
+                <div class="switch"><input type="checkbox" id="set-startMinimized"><span class="slider"></span></div>
+              </label>
+              <label class="setting-row setting-toggle">
+                <span>Minimize to Tray on Exit</span>
+                <div class="switch"><input type="checkbox" id="set-minimizeOnClose"><span class="slider"></span></div>
+              </label>
+              <label class="setting-row setting-toggle" title="Rest your mouse on the top edge of the screen to open quick settings">
+                <span>Top-of-Screen Quick Menu</span>
+                <div class="switch"><input type="checkbox" id="set-quickBar"><span class="slider"></span></div>
+              </label>
+              <label class="setting-row setting-toggle" title="Show volume and setting changes at the top of the screen">
+                <span>On-Screen Notifications</span>
+                <div class="switch"><input type="checkbox" id="set-notifications"><span class="slider"></span></div>
+              </label>
+            </div>
+
+            <div class="settings-section" data-section="audio">
+              <div class="settings-label">Custom Audio Override</div>
+              <label class="setting-row setting-toggle">
+                <span>Enable Custom Audio</span>
+                <div class="switch"><input type="checkbox" id="set-customAudioEnabled"><span
+                    class="slider"></span></div>
+              </label>
+              <div class="file-upload-container">
+                <label for="customAudioFile" class="file-upload-btn">Choose Audio File</label>
+                <span id="fileNameDisplay" class="file-name-display">No file selected</span>
+                <input type="file" id="customAudioFile" accept="audio/*">
+              </div>
+            </div>
+
+            <div class="settings-section" data-section="hotkeys">
+              <div class="settings-label">Global Hotkeys</div>
+              <div class="setting-row">
+                <span>Toggle Mute</span>
+                <input type="text" class="hotkey-input" id="key-mute" placeholder="None" readonly>
+              </div>
+              <div class="setting-row">
+                <span>Volume Up</span>
+                <input type="text" class="hotkey-input" id="key-volUp" placeholder="None" readonly>
+              </div>
+              <div class="setting-row">
+                <span>Volume Down</span>
+                <input type="text" class="hotkey-input" id="key-volDown" placeholder="None" readonly>
+              </div>
+            </div>
+
+            <div class="settings-section" data-section="themes">
+              <div class="settings-label">Theme</div>
+              <div class="theme-list">
+                <button class="theme-card" data-theme-id="fe2">
+                  <span class="theme-swatch swatch-fe2"><i></i><i></i><i></i></span>
+                  <span class="theme-meta">
+                    <span class="theme-name">Flood Escape</span>
+                    <span class="theme-desc">Styled after FE2's in-game menus</span>
+                  </span>
+                  <span class="theme-check">&#10003;</span>
+                </button>
+                <button class="theme-card" data-theme-id="legacy">
+                  <span class="theme-swatch swatch-legacy"><i></i><i></i><i></i></span>
+                  <span class="theme-meta">
+                    <span class="theme-name">Legacy</span>
+                    <span class="theme-desc">The original FE2CM Audio Player look</span>
+                  </span>
+                  <span class="theme-check">&#10003;</span>
+                </button>
+                <div id="customThemeList" class="custom-theme-list"></div>
+              </div>
+
+              <button class="import-toggle-btn" id="importThemeBtn">Import Theme</button>
+
+              <div class="import-form" id="importForm" hidden>
+                <div class="settings-label">Import Theme</div>
+                <label for="themeFile" class="file-upload-btn">Choose Theme File (.css)</label>
+                <span id="themeFileName" class="file-name-display">No file selected</span>
+                <input type="file" id="themeFile" accept=".css,text/css">
+                <input type="text" class="import-input" id="themeName" placeholder="Theme name" maxlength="40">
+                <input type="text" class="import-input" id="themeDesc" placeholder="Description (optional)" maxlength="120">
+                <div class="setting-row import-base-row">
+                  <span>Based on</span>
+                  <button class="base-btn" id="themeBase" data-base="fe2">Flood Escape</button>
+                </div>
+                <div class="import-error" id="importError" hidden></div>
+                <div class="import-actions">
+                  <button class="import-cancel-btn" id="importCancel">Cancel</button>
+                  <button class="import-confirm-btn" id="importConfirm">Import</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <button class="fe2-close-btn only-fe2" id="closeSettingsBig">Close</button>
+      </div>
+
+      <div id="loading-screen">
+        <div class="spinner"></div>
+        <div id="loadingText" style="color: var(--text-muted);">Loading...</div>
+      </div>
+
+      <div id="login-screen">
+        <div class="login-card">
+          <div class="login-header">
+            <h2>Welcome</h2>
+            <p class="login-subtitle">Enter your Roblox Username | Made by myralune</p>
+          </div>
+          <div class="login-form">
+            <input type="text" id="username" placeholder="Roblox Username">
+            <button class="connect-btn" id="connectBtn">Connect</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="dashboard">
+        <div class="screen-title only-fe2">Audio Player</div>
+        <div class="dash-body">
+          <div class="status-bar">
+            Connected as <span id="displayUser" class="status-user">Guest</span>
+          </div>
+
+          <div class="dash-list">
+            <div class="control-group">
+              <div class="label-row">
+                <span class="vol-label"><span>Volume</span><span class="mute-btn" id="muteBtn" title="Toggle Mute">&#128266;</span></span>
+                <span id="volDisplay">70%</span>
+              </div>
+              <input type="range" id="volume" min="0" max="100" value="70">
+            </div>
+
+            <div class="control-group">
+              <div class="label-row">On Death
+                <button class="cycle-btn only-fe2" data-group="onDeath">Quieten BGM</button>
+              </div>
+              <div class="radio-group">
+                <label class="radio-option"><input type="radio" name="onDeath" value="Quieten BGM"> Quieten BGM</label>
+                <label class="radio-option"><input type="radio" name="onDeath" value="Stop BGM"> Stop BGM</label>
+                <label class="radio-option"><input type="radio" name="onDeath" value="Disable"> Disable</label>
+              </div>
+            </div>
+
+            <div class="control-group">
+              <div class="label-row">Leaving Game
+                <button class="cycle-btn only-fe2" data-group="onLeave">Stop BGM</button>
+              </div>
+              <div class="radio-group">
+                <label class="radio-option"><input type="radio" name="onLeave" value="Stop BGM"> Stop BGM</label>
+                <label class="radio-option"><input type="radio" name="onLeave" value="Disable"> Disable</label>
+              </div>
+            </div>
+          </div>
+          <div class="dash-actions">
+            <button class="refresh-btn" id="refreshBtn">Refresh FE2.IO</button>
+            <button class="disconnect-btn" id="disconnectBtn">Disconnect</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="tauri-shim.js"></script>
+  <script src="renderer.js"></script>
+</body>
+
+</html>

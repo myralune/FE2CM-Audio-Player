@@ -1,0 +1,50 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "FE2CM Audio Player",
+  "version": "1.4.0",
+  "identifier": "com.fe2cm.audioplayer",
+  "build": {
+    "frontendDist": "../src"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "FE2CM Audio Player",
+        "width": 400,
+        "height": 580,
+        "minWidth": 300,
+        "decorations": false,
+        "resizable": true,
+        "label": "main",
+        "visible": false,
+        "backgroundColor": "#1a202c"
+      }
+    ],
+    "security": {
+      "csp": null
+    },
+    "withGlobalTauri": true
+  },
+  "bundle": {
+    "active": true,
+    "targets": [
+      "nsis"
+    ],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "createUpdaterArtifacts": true
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEI5MjAzNTU5QUM0QUI1N0IKUldSN3RVcXNXVFVndWVieFRWR2FpSUE1RU5DRzJLSVVxWHZwRDBoVXZ3Ty9pWWdNVXQ1WENaeVEK",
+      "endpoints": [
+        "https://github.com/myralune/FE2CM-Audio-Player/releases/latest/download/latest.json"
+      ]
+    }
+  }
+}

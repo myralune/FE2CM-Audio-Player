@@ -1,0 +1,20 @@
+/*
+  Import via Settings > Themes > Import Theme, based on Flood Escape.
+  Flood Escape variables: --bg-color --frame --frame-notch --panel --box --box-edge --grey --blue --green --red --white --range-fill --range-track
+  Legacy variables: --bg-color --card-bg --accent --accent-hover --danger --danger-hover --text-main --text-muted --border --range-fill --range-track
+  html[data-theme="fe2" | "legacy"] targets the active base theme.
+  If a theme breaks the window, pick a built-in one from the tray icon's Theme menu.
+*/
+
+:root {
+  --bg-color: #140f1f;
+  --frame: #4a3a66;
+  --frame-notch: #6d5a8f;
+  --panel: #2c2140;
+  --box: #221933;
+  --box-edge: #170f24;
+  --blue: linear-gradient(180deg, #b07cf5 0%, #6b33c4 100%);
+  --grey: linear-gradient(180deg, #a49bb3 0%, #5e566b 100%);
+  --range-fill: #8f55e0;
+  --range-track: #170f24;
+}

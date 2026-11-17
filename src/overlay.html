@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html data-theme="fe2">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FE2CM Quick Menu</title>
+  <link rel="stylesheet" href="overlay.css">
+</head>
+
+<body>
+  <div class="quick-menu" id="quickMenu">
+    <button class="icon-btn" id="muteBtn" title="Toggle Mute">
+      <svg class="icon icon-volume" viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4z" /><path class="wave" d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" /></svg>
+      <svg class="icon icon-muted" viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4z" /><path class="wave" d="M16.5 9.5l5 5M21.5 9.5l-5 5" /></svg>
+    </button>
+
+    <input type="range" id="volume" min="0" max="100" value="70">
+    <span class="volume-text" id="volumeText">70%</span>
+
+    <div class="divider"></div>
+
+    <div class="option">
+      <span class="option-label">On Death</span>
+      <button class="option-btn" id="onDeathBtn" data-group="onDeath">Quieten</button>
+    </div>
+    <div class="option">
+      <span class="option-label">On Leave</span>
+      <button class="option-btn" id="onLeaveBtn" data-group="onLeave">Stop</button>
+    </div>
+
+    <div class="divider"></div>
+
+    <button class="icon-btn" id="refreshBtn" title="Refresh FE2.IO">
+      <svg class="icon" viewBox="0 0 24 24"><path class="wave" d="M20 12a8 8 0 1 1-2.34-5.66" /><path d="M20 4v5h-5z" /></svg>
+    </button>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="overlay.js"></script>
+</body>
+
+</html>
