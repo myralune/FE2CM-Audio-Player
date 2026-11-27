@@ -116,7 +116,7 @@ fn build_menu(app: &AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
     let quit = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
     let sep = || PredefinedMenuItem::separator(app);
 
-    Menu::with_items(
+    let menu = Menu::with_items(
         app,
         &[
             &title,
@@ -132,11 +132,43 @@ fn build_menu(app: &AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
             &sep()?,
             &quit,
         ],
-    )
+    )?;
+    if crate::diag::ENABLED {
+        let item = |id: &str, label: &str| MenuItem::with_id(app, id, label, true, None::<&str>);
+        let debug = Submenu::with_items(
+            app,
+            "Debug",
+            true,
+            &[
+                &CheckMenuItem::with_id(
+                    app,
+                    "dbg:show-fe2",
+                    "Show fe2.io Window",
+                    true,
+                    crate::diag::fe2_visible(app),
+                    None::<&str>,
+                )?,
+                &item("dbg:devtools-fe2", "fe2.io DevTools")?,
+                &item("dbg:devtools-main", "App DevTools")?,
+                &sep()?,
+                &item("dbg:report", "Save Debug Report")?,
+                &item("dbg:logs", "Open Log Folder")?,
+            ],
+        )?;
+        // Sits just above Quit.
+        let quit_pos = menu.items()?.len() - 1;
+        menu.insert_items(&[&debug, &sep()?], quit_pos)?;
+    }
+    Ok(menu)
 }
 
 fn on_menu_event(app: &AppHandle, event: MenuEvent) {
     let id = event.id().as_ref();
+    log::info!("tray: {id}");
+    if let Some(action) = id.strip_prefix("dbg:") {
+        crate::diag::on_menu(app, action);
+        return;
+    }
     match id {
         "toggle" => toggle_main(app),
         "refresh" => {
@@ -168,7 +200,7 @@ fn on_menu_event(app: &AppHandle, event: MenuEvent) {
 pub fn create(app: &AppHandle) -> tauri::Result<()> {
     let tray = TrayIconBuilder::with_id("main")
         .icon(Image::from_bytes(ICON)?)
-        .tooltip("FE2CM Audio Player")
+        .tooltip(if crate::diag::ENABLED { "FE2CM Audio Player (Debug)" } else { "FE2CM Audio Player" })
         .menu(&build_menu(app)?)
         .show_menu_on_left_click(false)
         .on_menu_event(on_menu_event)

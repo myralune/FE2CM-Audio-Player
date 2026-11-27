@@ -13,6 +13,7 @@ window.electronAPI = {
   connectUser: (username) => invoke('connect_user', { username }),
   disconnectGame: () => invoke('disconnect_game'),
   refreshFE2: () => invoke('refresh_fe2'),
+  showFe2Window: () => invoke('show_fe2_window'),
 
   // The slider hands us strings.
   setVolume: (val) => invoke('set_volume', { value: Math.round(Number(val)) }),
@@ -46,4 +47,20 @@ window.electronAPI = {
     invoke('ui_ready').then((status) => { if (status) callback(status); });
   },
   onToggleMute: (callback) => { listen('toggle-mute', () => callback()); },
+
+  // Only reaches a file in the diagnostics build; elsewhere no logger is installed.
+  debugLog: (level, message) => { invoke('debug_log', { level, message: String(message) }).catch(() => {}); },
 };
+
+window.addEventListener('error', (e) => {
+  window.electronAPI.debugLog('error', `ui error: ${e.message} @${e.filename}:${e.lineno}`);
+});
+window.addEventListener('unhandledrejection', (e) => {
+  const r = e.reason;
+  window.electronAPI.debugLog('error', `ui unhandled rejection: ${(r && (r.stack || r.message)) || r}`);
+});
+
+invoke('build_info').then((info) => {
+  if (!info.diagnostics) return;
+  document.querySelectorAll('.title-text').forEach((el) => { el.textContent += ' (Debug)'; });
+}).catch(() => {});

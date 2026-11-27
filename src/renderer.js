@@ -330,36 +330,70 @@ document.getElementById('set-notifications').onchange = triggerSave;
 let customAudioPlayer = new Audio();
 customAudioPlayer.loop = true;
 let isCustomAudioEnabled = false;
+let hasCustomFile = false;
+// FE2 is muted and held at volume 0 only while custom audio actually replaces it.
+let customTakeover = false;
+
+function playCustom() {
+  customAudioPlayer.play().catch((e) => {
+    console.log("Play error", e);
+    api.debugLog('warn', `custom audio play() rejected: ${e && e.name}: ${e && e.message}`);
+  });
+}
+
+function syncSiteMute() {
+  api.setSiteMute(isMuted || customTakeover);
+}
+
+function applyCustomAudioMode() {
+  const active = isCustomAudioEnabled && hasCustomFile;
+  if (active !== customTakeover) {
+    customTakeover = active;
+    api.debugLog('info', `custom audio takeover ${active ? 'on' : 'off'}`);
+    // Must land before setVolume, which skips FE2 while custom audio is active.
+    api.setCustomAudioActive(active).then(() => {
+      if (!active) {
+        customAudioPlayer.pause();
+        customAudioPlayer.currentTime = 0;
+        lastBgmState = '';
+        api.setVolume(isMuted ? 0 : parseInt(volSlider.value));
+      }
+    });
+  }
+  syncSiteMute();
+}
 
 document.getElementById('customAudioFile').onchange = (e) => {
   const file = e.target.files[0];
   const fileNameDisplay = document.getElementById('fileNameDisplay');
+  if (customAudioPlayer.src) URL.revokeObjectURL(customAudioPlayer.src);
   if (file) {
     customAudioPlayer.src = URL.createObjectURL(file);
     fileNameDisplay.innerText = file.name;
+    hasCustomFile = true;
+    api.debugLog('info', `custom audio file chosen: type=${file.type || '?'} size=${file.size}`);
   } else {
+    customAudioPlayer.removeAttribute('src');
     fileNameDisplay.innerText = "No file selected";
+    hasCustomFile = false;
   }
+  applyCustomAudioMode();
 };
 
-// FE2 is held at volume 0 while custom audio plays in its place.
-let siteVolumeBeforeCustom = -1;
+// An undecodable file would otherwise leave FE2 muted with nothing playing instead.
+customAudioPlayer.onerror = () => {
+  if (!customAudioPlayer.getAttribute('src')) return;
+  const err = customAudioPlayer.error;
+  api.debugLog('error', `custom audio file failed to load: code=${err && err.code} ${err && err.message}`);
+  document.getElementById('fileNameDisplay').innerText = "Couldn't play this file";
+  hasCustomFile = false;
+  applyCustomAudioMode();
+};
 
 document.getElementById('set-customAudioEnabled').onchange = (e) => {
   isCustomAudioEnabled = e.target.checked;
-  
-  if (!isCustomAudioEnabled) {
-    customAudioPlayer.pause();
-    customAudioPlayer.currentTime = 0;
-    lastBgmState = '';
-    
-    api.setCustomAudioActive(false);
-    api.setSiteMute(false);
-    api.setVolume(parseInt(volSlider.value));
-  } else {
-    api.setCustomAudioActive(true);
-    api.setSiteMute(true);
-  }
+  api.debugLog('info', `custom audio checkbox ${isCustomAudioEnabled ? 'on' : 'off'} (file loaded: ${hasCustomFile})`);
+  applyCustomAudioMode();
 };
 
 const QUIETEN_SCALE = 0.5;
@@ -368,7 +402,7 @@ let lastBgmState = '';
 api.onGameAudioState((bgmInfo) => {
   if (isMuted) return;
 
-  if (!isCustomAudioEnabled || !customAudioPlayer.src) return;
+  if (!customTakeover) return;
 
   api.setSiteVolume(0);
 
@@ -379,16 +413,16 @@ api.onGameAudioState((bgmInfo) => {
   if (bgmInfo.startsWith('Playing BGM')) {
     if (bgmInfo.includes('Quietened')) {
       if (customAudioPlayer.paused) {
-        customAudioPlayer.play().catch(e => console.log("Play error", e));
+        playCustom();
       }
       customAudioPlayer.volume = userVolume * QUIETEN_SCALE;
     } else {
       // A new "Playing BGM" state means a new song, so restart from the beginning.
       if (prevState !== bgmInfo) {
         customAudioPlayer.currentTime = 0;
-        customAudioPlayer.play().catch(e => console.log("Play error", e));
+        playCustom();
       } else if (customAudioPlayer.paused) {
-        customAudioPlayer.play().catch(e => console.log("Play error", e));
+        playCustom();
       }
       customAudioPlayer.volume = userVolume;
     }
@@ -401,7 +435,11 @@ api.onGameAudioState((bgmInfo) => {
 });
 
 api.onConnectionStatus((status) => {
-  if (status === 'show-login') {
+  if (status === 'load-failed') {
+    showScreen('loading-screen');
+    document.getElementById('loadingText').innerText = "Couldn't load fe2.io";
+    document.getElementById('loading-screen').classList.add('has-error');
+  } else if (status === 'show-login') {
     showScreen('login-screen');
   } else if (status === 'connected') {
     showScreen('dashboard');
@@ -482,6 +520,7 @@ function autoFitWindow() {
 }
 
 function showScreen(screenId) {
+  document.getElementById('loading-screen').classList.remove('has-error');
   ['loading-screen', 'login-screen', 'dashboard'].forEach(id => {
     document.getElementById(id).style.display = (id === screenId) ? 'flex' : 'none';
   });
@@ -505,6 +544,14 @@ document.getElementById('connectBtn').onclick = () => {
   }, 200);
 };
 
+document.getElementById('retryLoadBtn').onclick = () => {
+  showScreen('loading-screen');
+  document.getElementById('loadingText').innerText = "Loading...";
+  api.refreshFE2();
+};
+
+document.getElementById('showFe2Btn').onclick = () => api.showFe2Window();
+
 document.getElementById('refreshBtn').onclick = () => {
   api.refreshFE2();
   showScreen('loading-screen');
@@ -522,26 +569,39 @@ const volGroup = volSlider.closest('.control-group');
 let isMuted = false;
 let volumeBeforeMute = 70;
 
+function setMutedUi(muted) {
+  isMuted = muted;
+  muteBtn.innerHTML = muted ? '&#128263;' : '&#128266;';
+  volGroup.classList.toggle('volume-muted', muted);
+}
+
+// While muted the slider keeps showing the volume that unmuting will restore.
+function showSliderVolume(val) {
+  volSlider.value = val;
+  volDisplay.innerText = val + '%';
+  updateVolumeFill();
+}
+
 function toggleMute() {
-  if (isMuted) {
-    isMuted = false;
-    muteBtn.innerHTML = '&#128266;';
-    volGroup.classList.remove('volume-muted');
-    api.setVolume(volumeBeforeMute);
-    customAudioPlayer.volume = volumeBeforeMute / 100;
-    if (isCustomAudioEnabled) {
+  // A slider sitting at 0 is already silent, so the button should bring sound back.
+  if (isMuted || parseInt(volSlider.value) === 0) {
+    const vol = volumeBeforeMute || 70;
+    setMutedUi(false);
+    showSliderVolume(vol);
+    api.setVolume(vol);
+    customAudioPlayer.volume = vol / 100;
+    if (customTakeover) {
       api.setSiteVolume(0);
     }
-    api.setSiteMute(false);
+    syncSiteMute();
   } else {
     volumeBeforeMute = parseInt(volSlider.value) || 70;
-    isMuted = true;
-    muteBtn.innerHTML = '&#128263;';
-    volGroup.classList.add('volume-muted');
+    setMutedUi(true);
     api.setVolume(0);
-    api.setSiteMute(true);
+    syncSiteMute();
     customAudioPlayer.volume = 0;
   }
+  api.debugLog('info', `mute toggled: muted=${isMuted} restoreVolume=${volumeBeforeMute}`);
 }
 
 muteBtn.onclick = toggleMute;
@@ -552,16 +612,14 @@ api.onToggleMute(() => {
 
 volSlider.oninput = () => {
   if (isMuted) {
-    isMuted = false;
-    muteBtn.innerHTML = '&#128266;';
-    volGroup.classList.remove('volume-muted');
-    api.setSiteMute(false);
+    setMutedUi(false);
+    syncSiteMute();
   }
   const val = volSlider.value;
   volDisplay.innerText = val + '%';
   api.setVolume(val);
   customAudioPlayer.volume = val / 100;
-  if (isCustomAudioEnabled) {
+  if (customTakeover) {
     api.setSiteVolume(0);
   }
   updateVolumeFill();
@@ -598,10 +656,24 @@ api.onRestoreState((data) => {
     document.getElementById('displayUser').innerText = data.username;
   }
   if (data.volume !== undefined && data.volume !== null) {
-    volSlider.value = data.volume;
-    document.getElementById('volDisplay').innerText = data.volume + '%';
-    customAudioPlayer.volume = data.volume / 100;
-    updateVolumeFill();
+    if (data.volume === 0) {
+      // A saved volume of 0 is a mute carried over from an earlier session.
+      volumeBeforeMute = data.previousVolume || 70;
+      showSliderVolume(volumeBeforeMute);
+      customAudioPlayer.volume = 0;
+      if (!isMuted) {
+        setMutedUi(true);
+        syncSiteMute();
+      }
+    } else {
+      if (isMuted) {
+        setMutedUi(false);
+        syncSiteMute();
+      }
+      showSliderVolume(data.volume);
+      customAudioPlayer.volume = data.volume / 100;
+    }
+    api.debugLog('info', `restore-state: volume=${data.volume} previousVolume=${data.previousVolume} muted=${isMuted}`);
   }
   if (data.onDeath) {
     const el = document.querySelector(`input[name="onDeath"][value="${data.onDeath}"]`);
@@ -634,19 +706,25 @@ api.onRestoreState((data) => {
 });
 
 api.onUpdateVolume((val) => {
-  if (isMuted && val > 0) {
-    isMuted = false;
-    muteBtn.innerHTML = '&#128266;';
-    volGroup.classList.remove('volume-muted');
-    api.setSiteMute(false);
+  // Treated as a mute so the next mute press restores sound instead of muting again.
+  if (val === 0) {
+    if (!isMuted) {
+      volumeBeforeMute = parseInt(volSlider.value) || volumeBeforeMute || 70;
+      setMutedUi(true);
+      syncSiteMute();
+    }
+    customAudioPlayer.volume = 0;
+    return;
   }
-  volSlider.value = val;
-  volDisplay.innerText = val + '%';
+  if (isMuted) {
+    setMutedUi(false);
+    syncSiteMute();
+  }
+  showSliderVolume(val);
   customAudioPlayer.volume = val / 100;
-  if (isCustomAudioEnabled) {
+  if (customTakeover) {
     api.setSiteVolume(0);
   }
-  updateVolumeFill();
 });
 
 updateVolumeFill();

@@ -248,6 +248,27 @@ body {
   animation: fe2-load 1.1s linear infinite;
 }
 
+.load-error {
+  order: 3;
+  display: none;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  max-width: 300px;
+}
+
+.load-error-text {
+  margin: 0 0 4px;
+  font-size: 17px;
+  line-height: 1.3;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+#app-container .load-error .refresh-btn { flex: none; width: 100%; }
+#loading-screen.has-error .load-error { display: flex; }
+#loading-screen.has-error .spinner { display: none; }
+
 @keyframes fe2-load {
   from { left: -35%; }
   to { left: 100%; }

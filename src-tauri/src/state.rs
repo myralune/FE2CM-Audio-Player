@@ -2,7 +2,7 @@ use crate::config::Config;
 use crate::shortcuts::ShortcutState;
 use std::path::PathBuf;
 use std::sync::Mutex;
-use std::sync::atomic::AtomicBool;
+use std::sync::atomic::{AtomicBool, AtomicU8};
 use tauri::tray::TrayIcon;
 
 pub struct AppState {
@@ -16,6 +16,12 @@ pub struct AppState {
     pub is_quitting: AtomicBool,
     pub has_shown_minimize_alert: AtomicBool,
     pub polling_started: AtomicBool,
+    /// Failed fe2.io loads in a row; reset by a successful load.
+    pub load_failures: AtomicU8,
+    /// One failed load can report "finished" twice, which must not schedule two retries.
+    pub retry_pending: AtomicBool,
+    /// Shown so the user could get past a load error; hidden again once fe2.io works.
+    pub fe2_shown_for_recovery: AtomicBool,
 
     /// Logical content size the UI was laid out at; drives zoom and aspect ratio.
     pub base_content_size: Mutex<(f64, f64)>,
@@ -38,6 +44,9 @@ impl AppState {
             is_quitting: AtomicBool::new(false),
             has_shown_minimize_alert: AtomicBool::new(false),
             polling_started: AtomicBool::new(false),
+            load_failures: AtomicU8::new(0),
+            retry_pending: AtomicBool::new(false),
+            fe2_shown_for_recovery: AtomicBool::new(false),
             base_content_size: Mutex::new((400.0, 580.0)),
             connection_status: Mutex::new(String::new()),
             tray: Mutex::new(None),

@@ -429,6 +429,25 @@ input[type="text"]:focus {
   margin-bottom: 20px;
 }
 
+.load-error {
+  display: none;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  max-width: 280px;
+  margin-top: 16px;
+}
+
+.load-error-text {
+  margin: 0 0 4px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--text-muted);
+}
+
+#loading-screen.has-error .load-error { display: flex; }
+#loading-screen.has-error .spinner { display: none; }
+
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }

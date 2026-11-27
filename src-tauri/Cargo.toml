@@ -12,6 +12,10 @@ rust-version = "1.90"
 name = "app_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
+[features]
+# Tester build: file logging, fe2.io snapshots, DevTools and a Debug tray menu.
+diagnostics = ["tauri/devtools"]
+
 [build-dependencies]
 tauri-build = { version = "2.7.5", features = [] }
 

@@ -168,6 +168,7 @@ pub fn register(app: &AppHandle) {
 }
 
 fn run_action(app: &AppHandle, action: Action) {
+    log::info!("hotkey: {action:?}");
     match action {
         Action::Mute => emit_ui(app, "toggle-mute", ()),
         Action::VolUp | Action::VolDown => {

@@ -82,6 +82,7 @@ pub fn connect_user(app: AppHandle, state: State<AppState>, username: String) {
     game_logic::connect_user_logic(&app, &username);
     std::thread::spawn(move || {
         std::thread::sleep(std::time::Duration::from_millis(50));
+        game_logic::apply_saved_settings(&app);
         set_connection_status(&app, "connected");
     });
 }
@@ -91,6 +92,12 @@ pub fn disconnect_game(app: AppHandle, state: State<AppState>) {
     state.user_disconnected.store(true, Ordering::SeqCst);
     game_logic::save_config(&app);
     game_logic::reload_fe2(&app);
+}
+
+#[tauri::command]
+pub fn show_fe2_window(app: AppHandle, state: State<AppState>) {
+    state.fe2_shown_for_recovery.store(true, Ordering::SeqCst);
+    game_logic::show_fe2_window(&app);
 }
 
 #[tauri::command]
@@ -113,6 +120,7 @@ pub fn click_option(app: AppHandle, group: String, value: String) {
 
 #[tauri::command]
 pub fn set_custom_audio_active(state: State<AppState>, active: bool) {
+    log::info!("custom audio active: {active}");
     state.custom_audio_active.store(active, Ordering::Relaxed);
 }
 

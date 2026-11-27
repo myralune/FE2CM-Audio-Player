@@ -6,6 +6,7 @@ use tauri_plugin_dialog::{DialogExt, MessageDialogKind};
 mod aspect;
 mod commands;
 mod config;
+mod diag;
 mod game_logic;
 mod overlay;
 mod shortcuts;
@@ -72,26 +73,23 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .setup(|app| {
-            if cfg!(debug_assertions) {
-                app.handle().plugin(
-                    tauri_plugin_log::Builder::default()
-                        .level(log::LevelFilter::Info)
-                        .build(),
-                )?;
+            if cfg!(debug_assertions) || diag::ENABLED {
+                app.handle().plugin(diag::log_plugin())?;
             }
 
             let config_path = app.path().app_config_dir()?.join("fe2-config.json");
             let config = config::Config::load(&config_path);
             let settings = config.settings.clone();
             app.manage(AppState::new(config, config_path));
+            diag::log_startup(app.handle());
 
             // Hidden background webview that hosts the real fe2.io page.
             let handle = app.handle().clone();
             let fe2_dir = app.path().app_data_dir()?.join("fe2-webview");
-            WebviewWindowBuilder::new(
+            let mut fe2 = WebviewWindowBuilder::new(
                 app,
                 FE2_LABEL,
-                WebviewUrl::External("https://fe2.io".parse().unwrap()),
+                WebviewUrl::External(diag::fe2_url().parse().unwrap()),
             )
             .title("fe2.io")
             .visible(false)
@@ -101,11 +99,26 @@ pub fn run() {
             )
             .data_directory(fe2_dir)
             .on_page_load(move |_window, payload| {
+                log::info!("fe2.io page load {:?}: {}", payload.event(), payload.url());
                 if payload.event() == PageLoadEvent::Finished {
                     game_logic::on_fe2_loaded(&handle);
                 }
-            })
-            .build()?;
+            });
+            if diag::ENABLED {
+                fe2 = fe2.initialization_script(diag::INIT_SCRIPT);
+            }
+            let fe2 = fe2.build()?;
+            webview::on_navigation_completed(&fe2, |ok, status, http| {
+                if ok {
+                    log::info!("fe2.io navigation completed: http {http}");
+                } else {
+                    log::warn!(
+                        "fe2.io navigation failed: {} ({status}), http {http}",
+                        webview::web_error_name(status)
+                    );
+                }
+            });
+            diag::start(app.handle());
 
             if let Some(main) = app.get_webview_window(MAIN_LABEL) {
                 let (base_w, base_h) = *app.state::<AppState>().base_content_size.lock().unwrap();
@@ -113,6 +126,9 @@ pub fn run() {
                 aspect::apply_min_size(&main, base_w, base_h);
                 aspect::install(&main);
                 let _ = main.set_always_on_top(settings.always_on_top);
+                if diag::ENABLED {
+                    let _ = main.set_title("FE2CM Audio Player (Debug)");
+                }
                 if !settings.start_minimized {
                     let _ = main.show();
                 }
@@ -121,11 +137,24 @@ pub fn run() {
             tray::create(app.handle())?;
             overlay::create(app.handle())?;
             shortcuts::start(app.handle());
-            updater::check_on_startup(app.handle());
+            // A tester build must not replace itself with the normal release.
+            if !diag::ENABLED {
+                updater::check_on_startup(app.handle());
+            }
 
             Ok(())
         })
         .on_window_event(|window, event| {
+            // Destroying the fe2.io window would break the app, so the debug "show" view only hides.
+            if window.label() == FE2_LABEL {
+                if let WindowEvent::CloseRequested { api, .. } = event {
+                    api.prevent_close();
+                    let _ = window.hide();
+                    let _ = window.set_skip_taskbar(true);
+                    tray::update_menu(window.app_handle());
+                }
+                return;
+            }
             if window.label() != MAIN_LABEL {
                 return;
             }
@@ -145,6 +174,7 @@ pub fn run() {
             commands::connect_user,
             commands::disconnect_game,
             commands::refresh_fe2,
+            commands::show_fe2_window,
             commands::set_volume,
             commands::click_option,
             commands::set_custom_audio_active,
@@ -161,6 +191,8 @@ pub fn run() {
             overlay::quick_toggle_mute,
             overlay::quick_refresh,
             overlay::show_notification,
+            diag::debug_log,
+            diag::build_info,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
